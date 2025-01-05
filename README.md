@@ -19,7 +19,8 @@ Adversarial Training: Trains G to produce data that fools D, while training D to
 
 ## Required Python packages
 
-To use the code, simply clone the repository:
+
+
 
 
 
