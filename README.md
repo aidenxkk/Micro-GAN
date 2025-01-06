@@ -1,21 +1,14 @@
 # Micro-GAN for educational purpose
 ## Andrej Karpathy's Micrograd: 
 A minimalist educational project designed to demonstrate the core concepts of automatic differentiation and backpropagation used in training neural networks. 
-## MicroGAN
-Based on the basic structure of MLP in Micrograd, this project implements MicroGAN, a simplified Generative Adversarial Network (GAN) framework designed for experimentation and learning. 
+
 ## Intro
+Building upon the foundation of Micrograd, Micro-GAN extends its functionality by adding activation functions like ReLU and Sigmoid. This allows us to improve the understanding of optimization in Generative Adversarial Networks (GANs) within a simplified educational framework. The project uses simple 2x2 images (faces) as learning target from a teaching video: A friendly introduction to Generative Adversarial Networks(Serrano.Academy), simplifying the training process.
+
+## MicroGAN
 Generator (G): Generates "fake" data samples from random noise.
 Discriminator (D): Distinguishes between "real" and "fake" data.
 Adversarial Training: Trains G to produce data that fools D, while training D to correctly classify real and fake data. 
-
-## Features
-
-- Custom `Value` class for autograd, which tracks operations and computes gradients using the chain rule.
-- Support for operations like addition, multiplication, power, ReLU, Sigmoid, Tanh, and more.
-- Backpropagation implementation to calculate gradients with respect to the loss.
-- GAN training with both generator and discriminator.
-- Batch processing for training the GAN.
-- Visualization tools to view training errors and generated images.
 
 ## Required Python packages
 install numpy package: 
@@ -27,104 +20,22 @@ python -m pip install -U matplotlib
 ```
 ## Create ValueWrapper 
 
-Based on karpath's micrograd, below is a slightly contrived example showing a number of possible supported operations:
-
-```python
-from micrograd.engine import Value
-
+```
 a = Value(-4.0)
 b = Value(2.0)
-c = a + b
-d = a * b + b**3
-c += c + 1
-c += 1 + c + (-a)
-d += d * 2 + (b + a).relu()
-d += 3 * d + (b - a).relu()
-e = c - d
-f = e**2
-g = f / 2.0
-g += 10.0 / f
-print(f'{g.data:.4f}') # prints 24.7041, the outcome of this forward pass
-g.backward()
-print(f'{a.grad:.4f}') # prints 138.8338, i.e. the numerical value of dg/da
-print(f'{b.grad:.4f}') # prints 645.5773, i.e. the numerical value of dg/db
-```
+c = a * b + b**2
 
+print(f'{c.data:.4f}')  # Forward pass result
+c.backward()
 
-## Test ValueWrapper 
-here is a small test for ValueWrapper: 
-```
-def test_sanity_check():
+print(f'{a.grad:.4f}')  # Gradient with respect to a
+print(f'{b.grad:.4f}')  # Gradient with respect to b
 
-    x = Value(-4.0)
-    z = 2 * x + 2 + x
-    q = z.relu() + z * x
-    h = (z * z).relu()
-    y = h + q + q * x
-    y.backward()
-    xmg, ymg = x, y
-
-    x = torch.Tensor([-4.0]).double()
-    x.requires_grad = True
-    z = 2 * x + 2 + x
-    q = z.relu() + z * x
-    h = (z * z).relu()
-    y = h + q + q * x
-    y.backward()
-    xpt, ypt = x, y
-
-    # forward pass went well
-    assert ymg.data == ypt.data.item()
-    # backward pass went well
-    assert xmg.grad == xpt.grad.item()
-
-def test_more_ops():
-
-    a = Value(-4.0)
-    b = Value(2.0)
-    c = a + b
-    d = a * b + b**3
-    c += c + 1
-    c += 1 + c + (-a)
-    d += d * 2 + (b + a).relu()
-    d += 3 * d + (b - a).relu()
-    e = c - d
-    f = e**2
-    g = f / 2.0
-    g += 10.0 / f
-    g.backward()
-    amg, bmg, gmg = a, b, g
-
-    a = torch.Tensor([-4.0]).double()
-    b = torch.Tensor([2.0]).double()
-    a.requires_grad = True
-    b.requires_grad = True
-    c = a + b
-    d = a * b + b**3
-    c = c + c + 1
-    c = c + 1 + c + (-a)
-    d = d + d * 2 + (b + a).relu()
-    d = d + 3 * d + (b - a).relu()
-    e = c - d
-    f = e**2
-    g = f / 2.0
-    g = g + 10.0 / f
-    g.backward()
-    apt, bpt, gpt = a, b, g
-
-    tol = 1e-6
-    # forward pass went well
-    assert abs(gmg.data - gpt.data.item()) < tol
-    # backward pass went well
-    assert abs(amg.grad - apt.grad.item()) < tol
-    assert abs(bmg.grad - bpt.grad.item()) < tol
-
-test_sanity_check()
-test_more_ops()
 ```
 
 ## Train GAN 
-### Imports 
+### Imports: 
+numpy library for backpropagation and python ploting library for displaying training results
 ```
 import numpy as np
 from numpy import random
@@ -132,7 +43,13 @@ import ValueWrapper.py
 from matplotlib import pyplot as plt
 %matplotlib inline
 ```
-### Basic methods needed before training
+### Basic Background before training
+Based on the idea in this Introduction to GAN: Generative Adversarial Networks in Slanted Land
+In this video, it define faces as the top-left and bottom-right corners of face images have hight(dark) values, while the other corners have low(light) values. To tell if an image is a face mathematically, add the pixel values of the top-left and bottom-right corners and subtract the values of the other two corners. A threshold of 1 is set:
+Score ≥ 1 → classified as a face
+Score < 1 → classified as not a face
+https://github.com/luisguiserrano/gans/blob/master/README.md#:~:text=A%20Friendly%20Introduction%20to%20GANs
+### functions as below 
 ```
 def view_samples(samples, m, n):
 ```
@@ -157,7 +74,10 @@ def optimize_zero_grad(nn,learning_rate):
 ``` 
 This function is used to update the parameters (weights) of a neural network nn using gradient descent. The gradients are applied to the parameters, and then the gradients are reset to zero. This helps in optimizing the neural network's weights during training.
 
-## Core Training below: 
+## Core Training: 
+### Discriminator Training: d_loss=−log(real_p)−log(1−fake_p)
+
+### Generator Training: g_loss=−log(fake_p)
 ```
 for epoch in range(epochs):
 
@@ -194,6 +114,12 @@ for epoch in range(epochs):
     
     # Adjust learning rate (simple linear decay)
     lr = lr * (1 - epoch / epochs)
+```
+Example output: 
+```Epoch 0: D Loss: 1.382, G Loss: 0.745
+Epoch 100: D Loss: 0.675, G Loss: 1.045
+...
+```
 
     if epoch % 100 == 0:
         print(f"Epoch {epoch}: D Loss: {d_loss.data}, G Loss: {g_loss.data}")
