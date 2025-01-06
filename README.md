@@ -119,8 +119,4 @@ Example output:
 ```Epoch 0: D Loss: 1.382, G Loss: 0.745
 Epoch 100: D Loss: 0.675, G Loss: 1.045
 ...
-```
 
-    if epoch % 100 == 0:
-        print(f"Epoch {epoch}: D Loss: {d_loss.data}, G Loss: {g_loss.data}")
-```
